@@ -98,6 +98,7 @@ export const UserContextProvider = ({ children }: UserProviderProps) => {
   };
 
   const login = async (username: string, password: string) => {
+    /*
     try {
       const url = "https://dummyjson.com/auth/login";
       const response = await axios.post<UserDTO>(url, {
@@ -121,7 +122,22 @@ export const UserContextProvider = ({ children }: UserProviderProps) => {
         delay: 0,
         backgroundColor: "red",
       });
-    }
+    }*/
+
+    const mock = {
+      id: 1,
+      username: "rafaelkasper",
+      email: "prof.rafaelkasper@gmail.com",
+      firstName: "rafael",
+      lastName: "kasper",
+      gender: "male",
+      image: "https://avatars.githubusercontent.com/u/42684330?v=4.jpg",
+      token: "a1b2c3d4e5f6",
+    };
+    setUser(mock);
+    setToken(mock.token);
+    storeToken(mock.token);
+    storeUser(mock);
   };
 
   const logout = async () => {

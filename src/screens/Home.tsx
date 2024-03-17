@@ -1,24 +1,20 @@
-import {
-  StyleSheet,
-  FlatList,
-  TextInput,
-  View,
-  Text,
-  TouchableOpacity,
-} from "react-native";
+import { StyleSheet, TextInput, View, Text } from "react-native";
 import "react-native-get-random-values";
 import React, { useContext, useEffect, useState } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import ItemCard from "../components/ItemCard";
-import { categories, todoList } from "../utils/data/todos";
+import { categories } from "../utils/data/todos";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { v4 as uuid } from "uuid";
 import { Task } from "../types/Task";
 import CategoryItem from "../components/CategoryItem";
 import DropDownPicker from "react-native-dropdown-picker";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Toast from "react-native-root-toast";
+import Animated, {
+  BounceInDown,
+  FlipInYRight,
+  FlipOutYRight,
+} from "react-native-reanimated";
 import { UserContext } from "../contexts/UserContext";
+import * as SQLite from "expo-sqlite";
 
 const Home = () => {
   const { user } = useContext(UserContext);
@@ -27,100 +23,118 @@ const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [taskInput, setTaskInput] = useState("");
   const [taskList, setTaskList] = useState<Task[]>([]);
-  const [filteredTasks, setFilteredTask] = useState<Task[]>([]);
+
+  const openDatabase = () => {
+    const db = SQLite.openDatabase("db.db");
+    return db;
+  };
+
+  const db = openDatabase();
 
   const getTasks = async () => {
-    try {
-      const jsonValue = await AsyncStorage.getItem("@tasks");
-      const data = jsonValue != null ? JSON.parse(jsonValue) : null;
-      setTaskList(data);
-      setFilteredTask(data);
-    } catch (e) {
-      Toast.show("Não foi possível recuperar as tarefas", {
-        duration: 5000,
-        position: Toast.positions.BOTTOM,
-        shadow: true,
-        animation: true,
-        hideOnPress: true,
-        delay: 0,
-        backgroundColor: "red",
-      });
-    }
+    db.transaction((tx) => {
+      tx.executeSql(
+        `select * from tasks where completed = 0;`,
+        [],
+        (_, { rows: { _array } }) => {
+          setTaskList(_array);
+        }
+      );
+    });
   };
 
-  const storeTasks = async (value: Task[]) => {
-    try {
-      const jsonValue = JSON.stringify(value);
-      await AsyncStorage.setItem("@tasks", jsonValue);
-    } catch (e) {
-      Toast.show("Não foi possível salvar as tarefas", {
-        duration: 5000,
-        position: Toast.positions.BOTTOM,
-        shadow: true,
-        animation: true,
-        hideOnPress: true,
-        delay: 0,
-        backgroundColor: "red",
-      });
-    }
+  const getTasksByCategory = (category: string) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        `select * from tasks where completed = 0 and category = ?;`,
+        [category],
+        (_, { rows: { _array } }) => {
+          setTaskList(_array);
+        }
+      );
+    });
   };
 
-  const getData = async () => {
-    await getTasks();
+  const getCompletedTasks = () => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        `select * from tasks where completed = 1;`,
+        [],
+        (_, { rows: { _array } }) => {
+          setTaskList(_array);
+        }
+      );
+    });
   };
 
   const handleAddTask = async () => {
     if (taskInput !== "" && categoryValue) {
-      const data = {
-        id: uuid(),
-        title: taskInput,
-        completed: false,
-        category: categoryValue,
-      };
-      const clone = [...taskList];
-      clone.unshift(data);
-      await storeTasks(clone);
-      await getData();
-      setTaskInput("");
-      setCategoryValue(null);
+      db.transaction((tx) => {
+        tx.executeSql(
+          "insert into tasks (completed, title, category) values (0, ?, ?)",
+          [taskInput, categoryValue]
+        );
+        tx.executeSql(
+          `select * from tasks where completed = 0;`,
+          [],
+          (_, { rows: { _array } }) => {
+            setTaskList(_array);
+          }
+        );
+      });
     }
+
+    setTaskInput("");
+    setCategoryValue(null);
   };
 
-  const handleRemoveTask = (id: string) => {
-    const filter = taskList.filter((t) => t.id !== id);
-    storeTasks(filter);
-    getData();
+  const handleRemoveTask = (id: number) => {
+    db.transaction((tx) => {
+      tx.executeSql("delete from tasks where id = ?", [id]);
+      tx.executeSql(
+        `select * from tasks where completed = 0;`,
+        [],
+        (_, { rows: { _array } }) => {
+          setTaskList(_array);
+        }
+      );
+    });
   };
 
-  const handleDoneTask = (id: string) => {
-    const clone = [...taskList];
-    const index = clone.findIndex((t) => t.id === id);
-    clone[index].completed = true;
-    storeTasks(clone);
-    getData();
+  const handleDoneTask = (id: number) => {
+    db.transaction((tx) => {
+      tx.executeSql("update tasks set completed = ? where id = ? ", [1, id]);
+      tx.executeSql(
+        `select * from tasks where completed = 0;`,
+        [],
+        (_, { rows: { _array } }) => {
+          setTaskList(_array);
+        }
+      );
+    });
   };
 
   const handleSelectCategory = (type: string) => {
     setSelectedCategory(type);
     switch (type) {
       case "all":
-        const all = taskList.filter((t) => t.completed === false);
-        setFilteredTask(all);
+        getTasks();
         break;
       case "done":
-        const done = taskList.filter((t) => t.completed === true);
-        setFilteredTask(done);
+        getCompletedTasks();
         break;
       default:
-        const filtered = taskList.filter(
-          (t) => t.category === type && t.completed === false
-        );
-        setFilteredTask(filtered);
+        getTasksByCategory(type);
     }
   };
 
   useEffect(() => {
-    getData();
+    db.transaction((tx) => {
+      tx.executeSql(
+        "create table if not exists tasks (id integer primary key not null, completed int, title text, category text);"
+      );
+    });
+    getTasks();
   }, []);
 
   return (
@@ -175,7 +189,8 @@ const Home = () => {
         />
       </View>
 
-      <FlatList
+      <Animated.FlatList
+        entering={BounceInDown}
         style={{ marginBottom: 30 }}
         data={categories}
         renderItem={({ item }) => (
@@ -189,10 +204,12 @@ const Home = () => {
         horizontal={true}
         showsHorizontalScrollIndicator={false}
       />
-      {filteredTasks.length > 0 ? (
-        <FlatList
+      {taskList && taskList.length > 0 ? (
+        <Animated.FlatList
+          entering={FlipInYRight}
+          exiting={FlipOutYRight}
           style={{ width: "100%" }}
-          data={filteredTasks}
+          data={taskList}
           renderItem={({ item }) => (
             <ItemCard
               task={item}
@@ -204,7 +221,8 @@ const Home = () => {
           showsVerticalScrollIndicator={false}
         />
       ) : (
-        <View
+        <Animated.View
+          entering={BounceInDown}
           style={{
             flex: 1,
             alignItems: "center",
@@ -212,9 +230,11 @@ const Home = () => {
           }}
         >
           <Text style={{ color: "#fff", fontSize: 20 }}>
-            Ufa, não há tarefas!
+            {selectedCategory === "done"
+              ? "Eita, nenhuma tarefa concluída! 😢"
+              : "Ufa, não há tarefas! 😋"}
           </Text>
-        </View>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
