@@ -3,6 +3,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import Home from "../screens/Home";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import User from "../screens/User";
+import AddTask from "../screens/AddTask";
+import AddHeader from "../components/AddHeader";
 
 const Stack = createNativeStackNavigator();
 
@@ -14,6 +16,18 @@ export const HomeRoutes = () => {
         component={Home}
         options={{
           headerTitle: "Tasks To do",
+          headerStyle: {
+            backgroundColor: "#11212D",
+          },
+          headerTintColor: "#fff",
+          headerRight: () => <AddHeader />,
+        }}
+      />
+      <Stack.Screen
+        name="AddTask"
+        component={AddTask}
+        options={{
+          headerTitle: "Adicionar Tarefa",
           headerStyle: {
             backgroundColor: "#11212D",
           },

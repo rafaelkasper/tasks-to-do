@@ -10,6 +10,7 @@ export const Routes = () => {
   useEffect(() => {
     getToken();
   }, []);
+
   return (
     <NavigationContainer>
       {token ? <AppRoutes /> : <AuthRoutes />}
