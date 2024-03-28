@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import User from "../screens/User";
 import AddTask from "../screens/AddTask";
 import AddHeader from "../components/AddHeader";
+import TaskDetails from "../screens/TaskDetails";
 
 const Stack = createNativeStackNavigator();
 
@@ -28,6 +29,17 @@ export const HomeRoutes = () => {
         component={AddTask}
         options={{
           headerTitle: "Adicionar Tarefa",
+          headerStyle: {
+            backgroundColor: "#11212D",
+          },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="TaskDetails"
+        component={TaskDetails}
+        options={{
+          headerTitle: "Detalhes da Tarefa",
           headerStyle: {
             backgroundColor: "#11212D",
           },

@@ -1,4 +1,6 @@
 import { ReactNode, createContext, useState } from "react";
+
+import * as ImagePicker from "expo-image-picker";
 import * as SQLite from "expo-sqlite";
 import { Task } from "../types/Task";
 import moment from "moment";
@@ -22,6 +24,12 @@ type TaskContextProps = {
   dateInput: Date;
   setDateInput: (value: Date) => void;
   getTasksByDate: (date: string) => void;
+  pickImage: (id: number) => void;
+  takePhoto: (id: number) => void;
+  image: string[];
+  setImage: (value: string[]) => void;
+  getTasksById: (id: number) => void;
+  taskSelected: string;
 };
 
 type TaskProviderProps = {
@@ -41,6 +49,8 @@ export const TaskContextProvider = ({ children }: TaskProviderProps) => {
   const formatedToday = moment().format("DD/MM/YYYY");
   const [dateInput, setDateInput] = useState(new Date());
   const [dateSelected, setDateSelected] = useState("");
+  const [taskSelected, setTaskSelected] = useState("");
+  const [image, setImage] = useState<string[]>([]);
 
   const openDatabase = () => {
     const db = SQLite.openDatabase("db.db");
@@ -56,6 +66,18 @@ export const TaskContextProvider = ({ children }: TaskProviderProps) => {
         [],
         (_, { rows: { _array } }) => {
           setTaskList(_array);
+        }
+      );
+    });
+  };
+
+  const getTasksById = (id: number) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        `select * from tasks where id = ?;`,
+        [id],
+        (_, { rows: { _array } }) => {
+          setTaskSelected(_array[0].images);
         }
       );
     });
@@ -106,7 +128,7 @@ export const TaskContextProvider = ({ children }: TaskProviderProps) => {
     if (taskInput !== "" && categoryValue) {
       db.transaction((tx) => {
         tx.executeSql(
-          "insert into tasks (completed, title, category, date) values (0, ?, ?, ?)",
+          "insert into tasks (completed, title, category, date, images) values (0, ?, ?, ?, '')",
           [taskInput, categoryValue, moment(dateInput).format("YYYY-MM-DD")]
         );
         tx.executeSql(
@@ -163,6 +185,53 @@ export const TaskContextProvider = ({ children }: TaskProviderProps) => {
     }
   };
 
+  const handleAddImage = async (file: string[], id: number) => {
+    db.transaction((tx) => {
+      tx.executeSql("update tasks set images = ? where id = ?;", [
+        file.toString(),
+        id,
+      ]);
+      tx.executeSql(
+        `select * from tasks where completed = 0;`,
+        [],
+        (_, { rows: { _array } }) => {
+          setTaskList(_array);
+        }
+      );
+    });
+  };
+
+  const handleImage = (file: string, id: number) => {
+    let newImages = [...image];
+    newImages.push(file);
+    setImage(newImages);
+    handleAddImage(newImages, id);
+  };
+
+  const pickImage = async (id: number) => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      aspect: [16, 9],
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      handleImage(result.assets[0].base64, id);
+    }
+  };
+
+  const takePhoto = async (id: number) => {
+    let data = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      aspect: [16, 9],
+      base64: true,
+    });
+
+    if (!data.canceled && data.assets[0].base64) {
+      handleImage(data.assets[0].base64, id);
+    }
+  };
+
   return (
     <TaskContext.Provider
       value={{
@@ -184,6 +253,12 @@ export const TaskContextProvider = ({ children }: TaskProviderProps) => {
         dateInput,
         setDateInput,
         getTasksByDate,
+        pickImage,
+        takePhoto,
+        image,
+        setImage,
+        getTasksById,
+        taskSelected,
       }}
     >
       {children}

@@ -30,7 +30,7 @@ const Home = () => {
   useEffect(() => {
     db.transaction((tx) => {
       tx.executeSql(
-        "create table if not exists tasks (id integer primary key not null, completed int, title text, category text, date text);"
+        "create table if not exists tasks (id integer primary key not null, completed int, title text, category text, date text, images text);"
       );
     });
     getTasks();
