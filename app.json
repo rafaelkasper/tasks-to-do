@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "todo",
-    "slug": "todo",
+    "name": "taskstodo",
+    "slug": "taskstodo",
+    "scheme": "taskstodo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,13 +14,15 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rafaelkasper.taskstodo"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.rafaelkasper.taskstodo"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,6 +35,11 @@
           "cameraPermission": "Permita que $(PRODUCT_NAME) acesse sua câmera"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2c163af2-1b0d-4da1-8757-0b0c47587a7b"
+      }
+    }
   }
 }

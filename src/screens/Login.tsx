@@ -2,9 +2,10 @@ import { StyleSheet, TextInput, Text, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import { UserContext } from "../contexts/UserContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "../components/Button";
 
 const Login = () => {
-  const { getToken, getUser, login } = useContext(UserContext);
+  const { getToken, getUser, login, googleSignIn } = useContext(UserContext);
 
   const [username, setUseername] = useState("kminchelle");
   const [password, setPassword] = useState("0lelplR");
@@ -38,6 +39,11 @@ const Login = () => {
       >
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
+      <Button
+        onPress={() => googleSignIn()}
+        title="Login com Google"
+        icon="google"
+      />
     </SafeAreaView>
   );
 };

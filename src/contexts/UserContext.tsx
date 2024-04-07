@@ -3,6 +3,7 @@ import { ReactNode, createContext, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserDTO } from "../types/User";
 import Toast from "react-native-root-toast";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 type UserContextProps = {
   token: string;
@@ -13,6 +14,7 @@ type UserContextProps = {
   getUser: () => void;
   login: (username: string, password: string) => void;
   logout: () => void;
+  googleSignIn: () => void;
 };
 
 type UserProviderProps = {
@@ -140,10 +142,34 @@ export const UserContextProvider = ({ children }: UserProviderProps) => {
     storeUser(mock);
   };
 
+  const googleSignIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const res = await GoogleSignin.signIn();
+      if (res) {
+        const user: UserDTO = {
+          id: res.user.id,
+          username: res.user.name || "",
+          email: res.user.email,
+          firstName: res.user.givenName || "",
+          lastName: res.user.familyName || "",
+          gender: "",
+          image: res.user.photo || "",
+          token: res.idToken || "",
+        };
+        setToken(res.idToken || "");
+        storeUser(user);
+        setUser(user);
+      }
+    } catch (error) {
+      console.log("Error", error);
+    }
+  };
+
   const logout = async () => {
     await AsyncStorage.removeItem("@token");
     await AsyncStorage.removeItem("@user");
-    await AsyncStorage.removeItem("@cart");
+    await GoogleSignin.signOut();
     setToken("");
   };
 
@@ -157,6 +183,7 @@ export const UserContextProvider = ({ children }: UserProviderProps) => {
         setUser,
         getUser,
         login,
+        googleSignIn,
         logout,
       }}
     >

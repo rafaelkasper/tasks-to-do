@@ -5,19 +5,21 @@ import { UserContext } from "../contexts/UserContext";
 
 const User = () => {
   const { user, logout } = useContext(UserContext);
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>
-        {user?.firstName} {user?.lastName}
+        {user?.firstName.toUpperCase()} {user?.lastName.toUpperCase()}
       </Text>
       <Image
-        resizeMode="center"
+        resizeMode="contain"
         style={styles.thumb}
         source={{
           uri: user?.image,
         }}
       />
       <Text style={styles.description}>{user?.username}</Text>
+      <Text style={styles.description}>{user?.email}</Text>
 
       <TouchableOpacity style={styles.button} onPress={() => logout()}>
         <Text style={styles.buttonText}>Sair</Text>
